@@ -1,0 +1,740 @@
+---
+title: "Data Manipulation with Tidyverse"
+format: html
+editor: visual
+---
+
+# Introduction to Tidyverse
+
+The [Tidyverse](https://www.tidyverse.org/) is a family of packages that do a few things:
+
+-   fix some of the annoying parts of using R, such as changing default options when importing data files and preventing large data frames from printing to the console
+-   are focused on working with data frames --or rather tibbles-- (and their columns), rather than individual vectors
+-   usually take a data frame/tibble as the first input to a function, and return a data frame/tibble as the output of a function, so that function calls can be more easily strung together in a sequence
+-   share some common naming conventions for functions and arguments that have a goal of making code more readable
+-   tend to be verbose, opinionated, and are actively working to provide more useful error messages
+
+Tidyverse packages are particularly useful for:
+
+-   data exploration
+-   reshaping data sets
+-   computing summary measures over groups
+-   cleaning up different types of data
+-   reading and writing data
+-   predictive modeling
+-   reporting results
+
+```{r}
+library(tidyverse)
+```
+
+# Data
+
+We're going to use the `read_csv` function from the `readr` package, which is part of the tidyverse. The `read_csv` function works like `read.csv` except it has some different defaults, guesses data types a bit differently, and produces a tibble instead of a data frame (details coming).
+
+```{r}
+healthdata <- read_csv("data/nhanes.csv")
+```
+
+The output message that you get tells you what data type it guessed for each column based on the format of the information. "chr" is character or text data, "dbl" is numeric (stands for double, which is technical term for a type of number), "lgl" is logical/Boolean (TRUE/FALSE). Note that it also automatically reads and identifies date and time values and converts them to date and time objects -- not just string/character data.
+
+We can also manually specify column types for cases where the assumption that `read_csv` makes is wrong. We use the `col_types` argument (similar to colClasses for `read.csv`).
+
+# Tibbles
+
+You may have noticed above that `read_csv` imported the data as something called a Tibble. Tibbles are the tidyverse version of a data frame. You can use them as you would a data frame (they are one), but they behave in slightly different ways.
+
+```{r, eval=TRUE}
+healthdata
+```
+
+The most observable difference is that tibbles will only print 10 rows and the columns that will fit in your console. When they print, they print a list of column names and the types of the columns that are shown.
+
+To view the dataset, use `View()`:
+
+```{r}
+View(healthdata)
+```
+
+When using \[\] notation to subset them, they will always return a tibble. In contrast, data frames sometimes return a data frame and sometimes return just a vector.
+
+```{r}
+healthdata[, 1]
+as.data.frame(healthdata)[, 1]
+```
+
+# TRY IT
+
+Using `read_csv` to read the "gov_env_2015.csv" data set inside the "data" folder. Get the first column of the data set.
+
+```{r}
+
+```
+
+# Introduction to dplyr
+
+`dplyr` is the core package of the tidyverse. It includes functions for working with tibbles (or any data frames). While you can still use base R operations on tibbles/data frames, such as using `$` and `[]` subsetting like we did above, dplyr provides alternatives to all of the common data manipulation tasks.
+
+# Select: Choose Columns
+
+The `select()` function lets us choose which columns (or variables) we want to keep in our data.
+
+## Selecting one column
+
+The data frame is the first input, and the name of the column is the second. We do not have to put quotes around the column name.
+
+```{r}
+select(healthdata, sleep_hours)
+```
+
+## Selecting two columns
+
+If we want to select additional columns, we can just list the column names as additional inputs, each column name separated by commas:
+
+```{r}
+select(healthdata, sleep_hours, marital_status)
+```
+
+As with `[]` indexing, columns will be returned in the order specified:
+
+```{r}
+select(healthdata, marital_status, sleep_hours)
+```
+
+We could also use the column index number if we wanted to instead. We don't need to put the values in `c()` like we would with `[]` (but we could).
+
+```{r}
+select(healthdata, 22, 7)
+```
+
+## Selecting with a pipe
+
+`dplyr`, and other tidyverse commands, can be strung together in a series with a `%>%` (say/read: pipe) operator. It takes the output of the command on the left and makes that the first input to the command on the right. The pipe works well with `dplyr` (and other tidyverse packages) because the functions almost all take a data frame as the first input, and they return a data frame as the output.
+
+We can rewrite
+
+```{r}
+select(healthdata, sleep_hours, marital_status)
+```
+
+as
+
+```{r}
+healthdata %>% select(sleep_hours, marital_status)
+```
+
+and you'll often see code formatted, so `%>%` is at the end of each line, and the following line that are still part of the same expression are indented:
+
+```{r}
+healthdata %>% 
+  select(sleep_hours, marital_status)
+```
+
+The keyboard shortcut for `%>%` is command-shift-M (Mac) or control-shift-M (Windows).
+
+We can use the pipe to string together multiple commands operating on the same data frame.
+
+## Ranges
+
+There are a number of select helper functions and special syntax options that allow us to choose multiple columns.
+
+First, we can use `:` for range, but with names in addition to numbers:
+
+```{r, eval=F}
+healthdata %>% select(sleep_hours:physically_active)
+```
+
+The result is the same if we use numbers:
+
+```{r, eval=F}
+healthdata %>% select(21:23)
+```
+
+We can select the rightmost columns with `last_col()` (you can check with `names` that it is the "last" column in our dataset):
+
+```{r, eval=F}
+healthdata %>% select(last_col())
+```
+
+You can use `offset` to count columns from the right:
+
+```{r}
+select(healthdata, last_col(offset=3))
+```
+
+This is one of the few places R acts like it's counting from 0, that's because it's the number of columns to offset from the end:
+
+```{r}
+# these are the same
+select(healthdata, last_col(0)) %>% names()
+select(healthdata, last_col()) %>% names()
+```
+
+## TRY IT
+
+Select the column `age`.
+
+```{r}
+
+```
+
+Select the columns `age` and `gender` in this order.
+
+```{r}
+
+```
+
+Select columns `age` through `education`.
+
+```{r}
+
+```
+
+## Excluding columns
+
+We can also say which columns we don't want by putting a `-` (minus) in front of the name. Think about it as subtracting one or more columns.
+
+```{r, eval=F}
+ncol(healthdata)
+ncol(healthdata %>% select(-sleep_hours, -sleep_trouble, -work_status))
+```
+
+When using negated `-` column names, if we start with negations and try to mix in columns we want to keep, it will get messy. Make sure to *avoid* the following code:
+
+```{r, eval=F}
+names(healthdata %>% select(-sleep_hours, -sleep_trouble, -work_status, id:age))
+```
+
+Notice that we get many more columns than just those between `id` and `age`? That's not what we wanted.
+
+To both specify the columns wanted and exclude some that would otherwise be selected, the exclusions need to come at the end:
+
+```{r, eval=F}
+names(healthdata %>% select(id:age, -sleep_hours, -sleep_trouble, -work_status))
+```
+
+We don't need to include `-sleep_hours`, `-sleep_trouble`, and `-work_status` because they are not part of the range between `id` and `age`. If we don't include them, we will still get the same result.
+
+```{r, eval=F}
+names(healthdata %>% select(id:age))
+```
+
+## TRY IT
+
+Select columns `gender` through `education`, excluding `age_decade`.
+
+```{r}
+
+```
+
+## Reordering
+
+We've already seen that columns will appear in the result in the order that we list the names.
+
+If we list a column name more than once, it will appear in the first position only (it won't be repeated):
+
+```{r}
+names(select(healthdata, sleep_trouble, weight, sleep_trouble, age))
+```
+
+If you want to pull a few columns over to the left so that they are the ones that show first when you look at the data, the everything() helper function can be useful.
+
+```{r, eval=F}
+names(select(healthdata, weight, height, everything()))
+```
+
+## Renaming
+
+We can also rename columns while using `select()`. The syntax is `new_name = old_name`.
+
+```{r, eval=F}
+names(healthdata %>% select(st=sleep_hours, sh=sleep_hours, age))
+```
+
+or we can use `rename()` to only rename, without affecting which columns are included or their order (all of the columns are kept in the same order):
+
+```{r, eval=F}
+names(healthdata %>% rename(st=sleep_hours))
+```
+
+Remember, this doesn't change the data set because we didn't save the result. So far, we've just been printing the output that is returned by the function. If we want to change our data frame, we'd need to save the result.
+
+## TRY IT
+
+Select, in this order, `age`, `gender`, and `age_decade`. Rename `age` to `age_in_years`.
+
+```{r}
+
+```
+
+## Matching names
+
+We can also select by matching patterns in the names of the columns. The patterns to match are in quotes because they aren't column names -- just character data.
+
+```{r, eval=F}
+names(healthdata %>% select(starts_with("bp_")))
+```
+
+You can also use `ends_with()` and `contains()`. You can also put a `-` in front of these helper functions to exclude columns. And there are even more [select helper functions](https://tidyselect.r-lib.org/reference/language.html).
+
+## TRY IT
+
+Select the columns that end with "status".
+
+```{r}
+
+```
+
+## Selecting with vectors
+
+What if we have the names of the columns we want to select in a vector already? For example:
+
+```{r, eval=TRUE}
+analysis_vars <- c("sleep_hours", "gender", "age", "marital_status")
+```
+
+Perhaps we built this vector programatically (we wrote code to determine the values, instead of typing them ourselves), so we can't just rewrite it to:
+
+```{r, eval=F}
+healthdata %>% select(sleep_hours, gender, age, marital_status)
+```
+
+If we just give the vector to `select`, it looks like we expect "analysis_vars" to be a column name in the data set. We get a warning:
+
+```{r}
+healthdata %>% select(analysis_vars)
+```
+
+This warning tells us what we should do instead, which is use `all_of`:
+
+```{r, eval=F}
+healthdata %>% select(all_of(analysis_vars))
+```
+
+This makes it clearer that "analysis_vars" isn't the name of a column in the data set.
+
+## Selecting with functions
+
+What if we want to select columns of a certain type -- for example, only the numeric columns?
+
+```{r, eval=F}
+healthdata %>% select(where(is.numeric))
+```
+
+`is.numeric` is the name of a function. We just use the name without `()`. This function is applied to each column, and if it returns TRUE, then the column is selected. Like above with using a vector, we wrap the function we want to use in `where` to make it clear that we're using a function, not looking for a column named "is.numeric").
+
+`where` can be used with any function that returns a *single* TRUE or FALSE value for each column.
+
+## TRY IT
+
+Select the character columns from the data.
+
+```{r}
+
+```
+
+## Combining multiple select conditions
+
+What if we want to combine multiple select conditions?
+
+We can use & and \|
+
+```{r}
+select(healthdata, contains("sleep") & where(is.character))
+```
+
+# Filter: Choose Rows
+
+To choose which rows should remain in our data, we use `filter()`. As with `[]`, we write expressions that evaluate to TRUE or FALSE for each row. Like `select()`, we can use the column names without quotes.
+
+```{r, eval=F}
+healthdata %>%  filter(sleep_hours == 8)
+```
+
+Note that we use `==` to test for equality and get TRUE/FALSE output. You can also write more complicated expressions -- anything that will evaluate to a vector of TRUE/FALSE values.
+
+We can do complex conditions as we could do with `[]`
+
+```{r, eval=F}
+healthdata %>%  filter(sleep_hours == 8 & marital_status == "Married")
+```
+
+If we include multiple comma-separated conditions, they are joined with `&` (and). So this following is equivalent to the above:
+
+```{r, eval=F}
+healthdata %>%  filter(sleep_hours == 8, marital_status == "Married")
+```
+
+## TRY IT
+
+Select the rows where `gender` is "female" and `height` is higher or equal to 180.
+
+```{r}
+
+```
+
+## Including Variable Transformations
+
+When filtering, we can include transformations of variables in our expressions.
+
+```{r}
+healthdata %>% 
+  filter(sleep_hours > mean(sleep_hours, na.rm = TRUE))
+```
+
+```{r,  eval=F}
+healthdata %>% 
+  filter(sleep_hours == max(sleep_hours, na.rm = TRUE))
+```
+
+## TRY IT
+
+Get the rows with lower than average `height`.
+
+```{r}
+
+```
+
+# Mutate: Change or Create Columns
+
+`mutate()` is used to both change the values of an existing column and make a new column.
+
+We name the column we're mutating and set the value. If the name already exists, it will update the column. If the name doesn't exist, it will create a new variable (column is appended at the end of the existing columns).
+
+```{r, eval=TRUE}
+healthdata %>% 
+  mutate(sleep_minutes = sleep_hours * 60) %>% 
+  names()
+```
+
+## Multiple mutations
+
+We can put multiple mutations in the same call to mutate, with the expressions separated by commas:
+
+```{r,  eval=TRUE}
+healthdata %>% 
+  mutate(sleep_minutes = sleep_hours * 60,
+         age_months = age * 12) %>% 
+  names()
+```
+
+## Referring to previous variables
+
+Within a call to mutate, we can refer to variables we made or changed earlier in the same call as well:
+
+```{r, eval=TRUE}
+healthdata %>% 
+  mutate(sleep_minutes = sleep_hours * 60,
+         age_months = age * 12,
+         sleep_seconds = sleep_minutes * 60) %>% 
+  names()
+```
+
+## Changing an existing column
+
+`mutate()` can also change an existing column. It will overwrite it.
+
+```{r, eval=TRUE}
+healthdata %>% 
+  mutate(weight = weight * 2.2) %>% 
+  select(weight)
+```
+
+We didn't save the output, so the column hasn't changed permanently - only in the output.
+
+```{r}
+select(healthdata, weight)
+```
+
+Remember that when using `mutate()`, you're operating on the entire column at once, so you can't select just a subset of the vector as you would with `[]`. This means more frequently using functions like `ifelse()` or helper functions such as `na_if()`, `replace_na()`, or `recode()`.
+
+# Summarize
+
+We use `mutate()` when we want the output to have the same length as the input. In other words, we use `mutate()` when we're operating on the individual elements in a vector - we want a value for every row in the data.
+
+When we want to condense multiple values down to a single (or a few values), such as taking the mean or standard deviation of a vector, we use summarize instead:
+
+```{r}
+healthdata %>% 
+  summarize(avg_sleep_hours = mean(sleep_hours, na.rm = TRUE))
+```
+
+Note that even though there's just one value, we get a tibble returned. This is what to expect with the tidyverse.
+
+## Computing more than one summary measure
+
+We can compute more than one summary measure at the same time:
+
+```{r}
+healthdata %>% 
+  summarize(avg_sleep_hours = mean(sleep_hours, na.rm = TRUE),
+            min_sleep_hours = min(sleep_hours, na.rm = TRUE),
+            max_sleep_hours = max(sleep_hours, na.rm = TRUE))
+```
+
+We get one column per summary variable we create. Once we group below, we'll see why we get the output in columns instead of rows.
+
+## TRY IT
+
+Calculate the minimum, average, and maximum `height`.
+
+```{r}
+
+```
+
+## n()
+
+A useful helper function with summarize is n() which counts the number of rows. It can be useful in computing proportions.
+
+```{r}
+healthdata %>% 
+  mutate(sleep_enough = if_else(sleep_hours >= 8, 1, 0)) %>% 
+  summarize(
+    sleep_enough_count = sum(sleep_enough == 1, na.rm = TRUE),
+    total_obs = n(),
+    sleep_enough_prop = sleep_enough_count / n()
+  )
+```
+
+## TRY IT
+
+Calculate the proportion of respondents that have more than average `height`.
+
+```{r}
+
+```
+
+## Across
+
+If we want to apply the same summary functions to multiple columns in our data frame, we can write out all of the summary commands explicitly, or we can use `across()` to select which variables to summarize with which functions. `across()` selects columns using the helper functions you could give to `select()` directly.
+
+```{r}
+na.omit(healthdata) %>% 
+  summarize(across(where(is.numeric), mean))
+```
+
+You can also use an "anonymous" function to avoid doing `na.omit`:
+
+```{r}
+healthdata %>% 
+  summarize(across(where(is.numeric), ~ mean(.x, na.rm = TRUE)))
+```
+
+### Selecting columns using their names
+
+If you wanted to select columns using their names, put them in a vector (so it's a single input argument):
+
+```{r}
+na.omit(healthdata) %>% 
+  summarize(across(c(sleep_hours, weight), mean))
+```
+
+### Apply multiple functions to each column
+
+If we want to apply multiple functions to each column, we put their names in a list() together:
+
+```{r}
+na.omit(healthdata) %>% 
+  summarize(across(where(is.numeric), list(mean, sd)))
+```
+
+To fix the names in the output, explicitly name our summary functions in the list:
+
+```{r}
+na.omit(healthdata) %>% 
+  summarize(across(where(is.numeric), list(avg=mean, std=sd)))
+```
+
+## TRY IT
+
+Calculate the median and variance for all numeric columns.
+
+```{r}
+
+```
+
+# Group By
+
+With base R, when we want to compute summary measures or do other computation on groups in our data (as defined by some grouping variable), we use functions such as `tapply()` or `aggregate()`. With dplyr, we can explicitly group our tibble into subgroups. This isn't very useful by itself, but it is often combined with `summarize()` to compute summary measures by group.
+
+First, what if we just group:
+
+```{r}
+healthdata %>% 
+  group_by(gender)
+```
+
+When we print this in the console, we see that it tells us that the tibble (data frame) is grouped by `gender`, and that there are 2 groups. It doesn't rearrange the rows, it just keeps track of the groups for us.
+
+## Group by with summarize
+
+Now, let's combine it with summarize:
+
+```{r}
+healthdata %>% 
+  group_by(gender) %>% 
+  summarize(avg_sleep_hours = mean(sleep_hours, na.rm = TRUE),
+            std_sleep_hours = sd(sleep_hours, na.rm = TRUE))
+```
+
+Now we get one row for each group, and one column for each summary measure.
+
+## Grouping by multiple columns
+
+We can group by multiple columns, and we'll get all of the combinations of values present across the columns:
+
+```{r}
+healthdata %>% 
+  group_by(gender, marital_status) %>% 
+  summarize(avg_sleep_hours = mean(sleep_hours, na.rm = TRUE),
+            std_sleep_hours = sd(sleep_hours, na.rm = TRUE))
+```
+
+## Ungrouping
+
+If you ever have a grouped data frame, you may need to ungroup it to get rid of the groups. To do so, use `ungroup()`:
+
+```{r}
+healthdata %>% 
+  group_by(gender) %>% 
+  ungroup()
+```
+
+Usually this would come up after more complicated operations, and often after computing summary measures by group.
+
+## Slicing
+
+One operation we could do with a grouped tibble is to select just certain rows from each group. For example, we could use the `slice()` function to select the first row from each group:
+
+```{r}
+healthdata %>% 
+  group_by(gender, marital_status) %>% 
+  summarize(avg_sleep_hours = mean(sleep_hours, na.rm = TRUE),
+            std_sleep_hours = sd(sleep_hours, na.rm = TRUE)) %>% 
+  slice(1)
+```
+
+If you look at this output in the console, you'll see the resulting tibble still has groups in it. This is a case where you might want to ungroup:
+
+```{r}
+healthdata %>% 
+  group_by(gender, marital_status) %>% 
+  summarize(avg_sleep_hours = mean(sleep_hours, na.rm = TRUE),
+            std_sleep_hours = sd(sleep_hours, na.rm = TRUE)) %>% 
+  slice(1) %>% 
+  ungroup()
+```
+
+Instead of using slice by itself, we're more likely to want to use slice_max or slice_min, or combine slice with sorting the rows in a particular order.
+
+## TRY IT
+
+Calculate the average `height` for each gender
+
+```{r}
+
+```
+
+# Row-wise operations
+
+dplyr is better suited to perform operations over columns. Performing operations over rows is more difficult.
+
+## `rowwise` as a special type of grouping
+
+```{r}
+healthdata %>% 
+  rowwise()
+```
+
+Notice that the output tells you that it's grouped rowwise. This is a special type of grouping where each group consists of a single row.
+
+Like `group_by`, `rowwise` is not useful by itself, but when you combine it with some of the other `dplyr` functions. Let's take a look at how it changes the behavior of `mutate`:
+
+```{r}
+healthdata %>% 
+  mutate(bp_dia_avg = mean(c(bp_dia1, bp_dia2, bp_dia3), na.rm = TRUE)) %>% 
+  select(contains("dia"))
+```
+
+It computed the mean of each column across all rows. Not what we wanted!
+
+```{r}
+healthdata %>% 
+  rowwise() %>% 
+  mutate(bp_dia_avg = mean(c(bp_dia1, bp_dia2, bp_dia3), na.rm = TRUE)) %>% 
+  select(contains("dia"))
+```
+
+Now it computed the mean for each group/row, which is what we wanted!
+
+## Summary statistics per row
+
+You can also use `rowwise` in combination with `summarize` to calculate summary statistics per row:
+
+```{r}
+healthdata %>% 
+  rowwise() %>% 
+  summarize(bp_dia_avg = mean(c(bp_dia1, bp_dia2, bp_dia3), na.rm = TRUE))
+```
+
+## TRY IT
+
+Using `example_df` below, use `mutate` or `summarize` to calculate the sum of `w`, `x`, `y`, and `z` per row.
+
+Challenge: use [`c_across`](https://dplyr.tidyverse.org/reference/c_across.html) to avoid typing all the column names.
+
+```{r}
+example_df <- tibble(id = 1:6, w = 10:15, x = 20:25, y = 30:35, z = 40:45)
+example_df
+```
+
+# Arrange
+
+`arrange()` is useful to sort the rows in our data. We would mostly use this when viewing our data, but it's also useful when we need to compute a time series (lags and leads in the data), when we want to select just a few rows from each group, or any other order-sensitive transformations on our data.
+
+```{r}
+arrange(healthdata, survey_year)
+```
+
+## Sort in reverse order
+
+To sort in reverse order, wrap the column name in `desc()`.
+
+```{r}
+arrange(healthdata, desc(survey_year))
+```
+
+## Sort by multiple columns
+
+Arrange by multiple columns, in order:
+
+```{r}
+arrange(healthdata, id, desc(survey_year))
+```
+
+# Count
+
+Count is how you'd get output similar to `table()` - it is used to count rows, either overall or in groups. It's a shortcut for summarizing and using `n()`.
+
+By itself, it counts the number of rows ("n" by default):
+
+```{r}
+healthdata %>%
+  count()
+```
+
+If you supply the name of a column, it makes a table:
+
+```{r}
+healthdata %>%
+  count(sleep_trouble)
+```
+
+## Count with multiple columns
+
+You can count by multiple columns as well:
+
+```{r}
+healthdata %>%
+  count(sleep_trouble, gender)
+```
