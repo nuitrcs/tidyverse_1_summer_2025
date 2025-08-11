@@ -1,2 +1,5 @@
-# tidyverse_1_summer_2025
-Repo for Data Manipulation with Tidyverse workshop (summer 2025)
+Repository for the Data Manipulation with Tidyverse taught by [Northwesternb University IT - Research Computing and Data Services](https://www.it.northwestern.edu/departments/it-services-support/research/) during the summer of 2025.
+
+[How to download these materials](https://sites.northwestern.edu/researchcomputing/resources/downloading-from-github/).
+
+[How to set up R and RStudio](https://sites.northwestern.edu/researchcomputing/resources/r-and-rstudio/).
