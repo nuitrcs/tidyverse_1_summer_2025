@@ -1,4 +1,4 @@
-Repository for the Data Manipulation with Tidyverse taught by [Northwesternb University IT - Research Computing and Data Services](https://www.it.northwestern.edu/departments/it-services-support/research/) during the summer of 2025.
+Repository for the Data Manipulation with Tidyverse taught by [Northwestern University IT - Research Computing and Data Services](https://www.it.northwestern.edu/departments/it-services-support/research/) during the summer of 2025.
 
 [How to download these materials](https://sites.northwestern.edu/researchcomputing/resources/downloading-from-github/).
 
