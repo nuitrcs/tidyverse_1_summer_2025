@@ -1,0 +1,119 @@
+---
+title: "extra_exercises"
+format: html
+editor: visual
+---
+
+# Reading data
+
+Using `read_csv` to read the "gov_env_2015.csv" data set inside the "data" folder. Save it in a variable called `govenv`.
+
+```{r}
+govenv <- read_csv("data/gov_env_2015.csv")
+
+dim(govenv)
+
+View(govenv)
+```
+
+# Subseting data 1
+
+Select the columns that start with "co2".
+
+```{r}
+govenv %>% 
+  select(starts_with("co2"))
+```
+
+# Subseting data 2
+
+What are the countries with higher than average `co2_per_capita`?
+
+```{r}
+# average co2_per_capita
+# get the countries
+
+govenv %>% 
+  filter(co2_per_capita > mean(co2_per_capita, na.rm = T)) %>% 
+  select(country)
+```
+
+# Subseting data 3
+
+What is the most common region for the countries that are not democracies?
+
+```{r}
+# get only the countries (rows) that are not democracies
+table(govenv$democracy)
+govenv %>% 
+  filter(democracy == 0)
+
+# get the most common region (count for the region)
+names(govenv)
+govenv %>% 
+  count(region)
+
+govenv %>% 
+  filter(democracy == 0) %>% 
+  count(region) %>% 
+  arrange(desc(n)) %>% 
+  slice(1)
+```
+
+# Mutating data
+
+Replace the missing values in `climate_laws_policies` by "missing".
+
+```{r}
+table(govenv$climate_laws_policies, useNA = "ifany")
+# NA -> "missing"
+
+View(govenv)
+
+govenv %>% 
+  mutate(climate_laws_policies = ifelse(is.na(climate_laws_policies), "missing", climate_laws_policies)) %>% 
+  count(climate_laws_policies)
+
+govenv %>% 
+  mutate(climate_laws_policies = replace_na(climate_laws_policies, 99))
+
+```
+
+# Summarizing
+
+Calculate the mean and the standard deviation of all numerical columns.
+
+```{r}
+govenv %>% 
+  summarise(
+    across(
+      where(is.numeric), 
+      list(
+        avg = ~ mean(.x, na.rm = T),
+        std = ~ sd(.x, na.rm = T)
+        )
+      )
+    )
+```
+
+# Grouping
+
+Calculate the median and the variance of `co2_per_capita` by whether the country has `climate_laws_policies` or not.
+
+# Proportions
+
+What proportions of countries are a presidential regime?
+
+# Proportions by group
+
+What proportion of countries with different numbers of climate laws and policies are democracies versus non-democracies?
+
+```{r}
+table(govenv$democracy)
+34/66
+govenv %>% 
+  filter(!is.na(climate_laws_policies)) %>% 
+  count(democracy, climate_laws_policies) %>% 
+  group_by(democracy) %>% 
+  mutate(prop = n / sum(n))
+```
